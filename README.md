@@ -9,7 +9,7 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_YOUR_PUBLISHABLE_KEY
 CLERK_SECRET_KEY=sk_live_YOUR_SECRET_KEY
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_FRONTEND_API_URL=https://clerk.YOUR_APP.eastus.azurecontainerapps.io
+NEXT_PUBLIC_CLERK_FRONTEND_API_URL=https://clerk.staging.calquity.com
 ```
 
 ### Dockerfile
@@ -149,38 +149,60 @@ https://nextauth-app.somehash.region.azurecontainerapps.io
 ```
 - Clerk authentication **requires a verified custom domain**, but currently, the app is running on Azure’s default domain (`*.azurecontainerapps.io`), which **cannot be configured with Clerk**.
 
-## **Why Authentication Doesn't Work Yet**
-- Clerk requires a **custom domain with DNS settings** to function correctly.
-- The free `azurecontainerapps.io` domain **cannot be used** to verify Clerk's required DNS records.
-- Without a custom domain, Clerk’s **Frontend API, Account Portal, and email verification won’t work**.
 
-## **Next Steps (To Enable Authentication)**
-1. **Purchase a custom domain** (e.g., `my-app.com`) or use an existing one.
-2. **Set up DNS records** for Clerk authentication:
- - Add required **CNAME records** in the domain’s DNS settings.
- - Validate the domain in Clerk’s dashboard.
-3. **Update the environment variables** in Azure:
- - Set `NEXT_PUBLIC_CLERK_FRONTEND_API_URL` to the **new custom domain**.
-4. **Redeploy the application** with the updated domain settings.
 
-## **Alternative Workaround (For Testing)**
-If immediate testing is required before purchasing a custom domain:
-- Use **Clerk’s development mode** for local testing.
-- Ask the organization if they have a **subdomain** on an existing domain that can be used temporarily.
+# Steps to Add a Custom Domain in Azure Container Apps
+
+## 1. Add Custom Domain in Azure Portal
+
+### 1️⃣ Go to Azure Portal
+- Open the [Azure Portal](https://portal.azure.com).
+- Navigate to **Azure Container Apps**.
+- Select your container app (`nextauth-app`).
+
+### 2️⃣ Go to "Custom Domains"
+- In the left menu, click **Custom Domains**.
+- Click **Add Custom Domain**.
+
+### 3️⃣ Enter Your Domain Name
+- Add `staging.calquity.com`.
+
 
 ---
 
-# **Final Note**
+## 2. Update DNS Records
+ Azure will provide CNAME and TXT records. Add these to your DNS provider (e.g., Cloudflare, Azure DNS).
 
-- Created **Azure Container Registry (ACR)**, built the image, and pushed it.
-- Created an **Azure Container Apps (ACA) environment** and deployed the image from ACR.
-- Configured environment variables inside the container.
-- Retrieved the live URL and verified the deployment.
+### ✅ Add DNS Records
+**TXT Record (Domain Verification)**
 
-✅ **The application is fully deployed and functional except for authentication.**  
-🚧 **Clerk authentication will work once a custom domain is configured.**  
+**CNAME Record (Point to Azure)**
 
+## Important
+- **If using Cloudflare**: Disable proxy mode (set to **DNS-only**).
+- **For Azure DNS**: Update records in the respective DNS zone.
 
+---
 
-Now your **Next.js app** is successfully deployed on **Azure Container Apps**! 🚀🎉
+## 3. Verify and Save in Azure
+1. Click **Validate** in Azure.
+2. Once validated, click **Add Domain**.
+3. Azure will automatically issue an SSL certificate.
 
+---
+
+## Update Clerk Allowed Domains
+1. Go to the [Clerk Dashboard](https://dashboard.clerk.com/).
+2. Navigate to **Domains**.
+3. Add `staging.calquity.com` as an allowed domain.
+4. Remove any old/invalid domains.
+
+---
+
+## Final Checks
+✅ Test the app at:  
+`https://staging.calquity.com`.  
+
+✅ Verify DNS resolution with:  
+```sh
+nslookup staging.calquity.com
