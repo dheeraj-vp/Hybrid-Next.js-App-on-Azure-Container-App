@@ -1,78 +1,63 @@
-name: Deploy to Azure Container Apps
+name: Build, Test, and Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 env:
-  IMAGE_NAME: nextauth-image
   ACR_NAME: nextauthacrnamev2
-  RESOURCE_GROUP: nextauth-rg
   CONTAINER_APP_NAME: nextauth-app
+  RESOURCE_GROUP: nextauth-rg
+  IMAGE_NAME: nextauth-image
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy Container App
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Log in to Azure
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Setup environment file
+        run: |
+          echo "CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}" > .env.local
+          echo "NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }}" >> .env.local
+          echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}" >> .env.local
+          echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }}" >> .env.local
+          echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }}" >> .env.local
+
+      - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set up Environment Variables
-        run: |
-          echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}" >> $GITHUB_ENV
-          echo "CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }}" >> $GITHUB_ENV
+      - name: Build Docker image
+        run: docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} .
 
-      - name: Set up Docker Buildx
+      - name: Push to Azure Container Registry
+        if: github.ref == 'refs/heads/main'
         run: |
-          docker buildx create --use --name mybuilder
-          docker buildx inspect --bootstrap
-
-      - name: Verify Dockerfile Exists
-        run: |
-          if [ ! -f Dockerfile ]; then
-            echo "❌ ERROR: Dockerfile not found in the repository!"
-            exit 1
-          fi
-
-      - name: Build and Push Docker Image
-        run: |
-          az acr login --name ${{ env.ACR_NAME }}
-          docker buildx build \
-            --platform linux/amd64 \
-            --file Dockerfile \
-            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
-            --build-arg CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }} \
-            --build-arg NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }} \
-            --build-arg NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }} \
-            --build-arg NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }} \
-            -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --push \
-            .
+          az acr login --name $ACR_NAME
+          docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
 
       - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          acrName: ${{ env.ACR_NAME }}
-          containerAppName: ${{ env.CONTAINER_APP_NAME }}
-          resourceGroup: ${{ env.RESOURCE_GROUP }}
-          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          environmentVariables: |
-            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
-            NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }}
-            NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }}
-            NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }}
+        if: github.ref == 'refs/heads/main'
+        run: |
+          az containerapp update \
+            --name $CONTAINER_APP_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --image $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }} \
+            --registry-server $ACR_NAME.azurecr.io
