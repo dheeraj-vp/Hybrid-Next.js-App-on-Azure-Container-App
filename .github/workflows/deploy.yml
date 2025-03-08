@@ -1,0 +1,38 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: nextauth-image
+  ACR_NAME: nextauthacrnamev2  # Replace with your actual ACR name
+  RESOURCE_GROUP: nextauth-rg         # Replace with your actual resource group
+  CONTAINER_APP_NAME: nextauth-app     # Replace with your actual container app name
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Container App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}  # Keep credentials secret
+
+      - name: Build and Deploy Container App
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}
+          acrName: ${{ env.ACR_NAME }}
+          containerAppName: ${{ env.CONTAINER_APP_NAME }}
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          imageTag: ${{ github.sha }}
