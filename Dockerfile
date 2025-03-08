@@ -13,8 +13,8 @@ RUN npm install
 # Copy the entire project
 COPY . .
 
-# Copy environment variables
-COPY .env.local .env
+# Copy environment variables (uncomment it while running it locally)
+#COPY .env.local .env
 
 # Build the Next.js app
 RUN npm run build
