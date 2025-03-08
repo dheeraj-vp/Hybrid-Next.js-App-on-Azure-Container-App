@@ -41,18 +41,25 @@ jobs:
           docker buildx create --use --name mybuilder
           docker buildx inspect --bootstrap
 
+      - name: Verify Dockerfile Exists
+        run: |
+          if [ ! -f Dockerfile ]; then
+            echo "❌ ERROR: Dockerfile not found in the repository!"
+            exit 1
+          fi
+
       - name: Build and Push Docker Image
         run: |
           az acr login --name ${{ env.ACR_NAME }}
           docker buildx build --platform linux/amd64 \
-            --file Dockerfile \  # Ensure the correct Dockerfile is used
+            --file Dockerfile \
             --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
             --build-arg CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }} \
             --build-arg NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }} \
             --build-arg NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }} \
             --build-arg NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }} \
             -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --push .  # **Fixed: Added missing build context**
+            --push .  # ✅ Fix: Ensure build context is explicitly set
 
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
