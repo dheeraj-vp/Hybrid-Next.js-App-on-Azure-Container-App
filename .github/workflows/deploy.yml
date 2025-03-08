@@ -51,7 +51,8 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           az acr login --name ${{ env.ACR_NAME }}
-          docker buildx build --platform linux/amd64 \
+          docker buildx build \
+            --platform linux/amd64 \
             --file Dockerfile \
             --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
             --build-arg CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }} \
