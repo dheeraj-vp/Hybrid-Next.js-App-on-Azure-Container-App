@@ -59,7 +59,8 @@ jobs:
             --build-arg NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }} \
             --build-arg NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }} \
             -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            . --push  # ✅ Fix: Correctly position the build context (`.`)
+            --push \
+            .
 
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
