@@ -38,20 +38,21 @@ jobs:
 
       - name: Set up Docker Buildx
         run: |
-          docker buildx create --use
+          docker buildx create --use --name mybuilder
           docker buildx inspect --bootstrap
 
       - name: Build and Push Docker Image
         run: |
           az acr login --name ${{ env.ACR_NAME }}
           docker buildx build --platform linux/amd64 \
+            --file Dockerfile \  # Ensure the correct Dockerfile is used
             --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
             --build-arg CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }} \
             --build-arg NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }} \
             --build-arg NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }} \
             --build-arg NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }} \
             -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --push .
+            --push .  # **Fixed: Added missing build context**
 
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
