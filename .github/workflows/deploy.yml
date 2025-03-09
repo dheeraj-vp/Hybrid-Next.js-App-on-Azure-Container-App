@@ -13,6 +13,7 @@ env:
   ACR_NAME: nextauthacrnamev2
   RESOURCE_GROUP: nextauth-rg
   CONTAINER_APP_NAME: nextauth-app
+  DOCKER_BUILDKIT: 0  # ✅ Disables BuildKit to prevent 'buildx' issues
 
 jobs:
   build-and-deploy:
