@@ -206,7 +206,7 @@ https://nextauth-app.somehash.region.azurecontainerapps.io
 ✅ Verify DNS resolution with:  
 ```sh
 nslookup staging.calquity.com
-
+```
 
 # 🚀 Continuous Integration and Deployment with GitHub Actions & Azure
 
@@ -275,6 +275,7 @@ This will return a JSON output like this:
 5. Click **Save**.
 
 📌 **Example of Repository Secrets Added:**
+
 ![GitHub Secrets](images/repositorySecrets.png)
 
 ### 2️⃣ Add Environment Variables as GitHub Secrets
@@ -312,6 +313,7 @@ Once the setup is complete, push a commit to the main branch to trigger the work
 4. If deployment fails, use **GitHub Actions logs** and **Azure Container Apps logs** for troubleshooting.
 
 📌 **Example of a Successful Workflow Run:**
+
 ![GitHub Actions Workflow](images/workflows.png)
 
 ---
@@ -326,6 +328,7 @@ Once the setup is complete, push a commit to the main branch to trigger the work
 | ❌ Container App Not Updating | Try forcing a new deployment with a different tag or re-running the workflow. |
 
 📌 **Example of Azure Container Apps Activity Log:**
+
 ![Azure Container Apps Log](images/activityLog.png)
 
 ---
