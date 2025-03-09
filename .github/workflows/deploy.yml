@@ -50,19 +50,19 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          az acr login --name ${{ env.ACR_NAME }}
-          docker buildx build \
-            --platform linux/amd64 \
-            --file Dockerfile \
-            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
-            --build-arg CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }} \
-            --build-arg NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }} \
-            --build-arg NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }} \
-            --build-arg NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }} \
-            -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --push \
-            .
-
+            az acr login --name ${{ env.ACR_NAME }}
+            docker build \
+              --file Dockerfile \
+              --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }} \
+              --build-arg CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }} \
+              --build-arg NEXT_PUBLIC_CLERK_SIGN_IN_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }} \
+              --build-arg NEXT_PUBLIC_CLERK_SIGN_UP_URL=${{ secrets.NEXT_PUBLIC_CLERK_SIGN_UP_URL }} \
+              --build-arg NEXT_PUBLIC_CLERK_FRONTEND_API_URL=${{ secrets.NEXT_PUBLIC_CLERK_FRONTEND_API_URL }} \
+              -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+              .
+              
+            docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
         with:
