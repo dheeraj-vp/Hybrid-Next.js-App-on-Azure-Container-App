@@ -206,3 +206,142 @@ https://nextauth-app.somehash.region.azurecontainerapps.io
 ✅ Verify DNS resolution with:  
 ```sh
 nslookup staging.calquity.com
+
+
+# 🚀 Continuous Integration and Deployment with GitHub Actions & Azure
+
+This guide walks you through setting up **GitHub Actions** for continuous integration and deployment (CI/CD). The deployment is triggered on every **commit or pull request to the `main` branch**.
+
+---
+
+## 🔹 Configuring Deployment Variables in GitHub Actions
+
+To ensure the deployment works correctly, you need to configure environment variables in the **GitHub Actions workflow file** (`deploy.yml`).
+
+### 1️⃣ Update Environment Variables in `deploy.yml`
+
+Open the `deploy.yml` file inside the `.github/workflows/` directory and update the following values based on your **Azure setup**:
+
+```yaml
+env:
+  IMAGE_NAME: nextauth-image  # Replace with your container image name
+  ACR_NAME: nextauthacrnamev2  # Replace with your Azure Container Registry (ACR) name
+  RESOURCE_GROUP: nextauth-rg  # Replace with your Azure Resource Group name
+  CONTAINER_APP_NAME: nextauth-app  # Replace with your Azure Container App name
+```
+
+---
+
+## 🔹 Setting Up GitHub Secrets for Deployment
+
+To ensure secure and automated deployment, you need to add your environment variables as GitHub secrets.
+
+### 1️⃣ Add Azure Credentials to GitHub Secrets
+
+The Azure Service Principal credentials are required for GitHub Actions to authenticate with Azure.
+
+#### 🛠 Steps to Generate Credentials
+
+Run the following command in your terminal:
+
+```sh
+az ad sp create-for-rbac --name "github-actions-deploy" --role contributor \
+    --scopes /subscriptions/$(az account show --query id -o tsv)/resourceGroups/nextauth-rg --sdk-auth
+```
+
+This will return a JSON output like this:
+
+```json
+{
+  "clientId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "clientSecret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "subscriptionId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "tenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+  "resourceManagerEndpointUrl": "https://management.azure.com/",
+  "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+  "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+  "galleryEndpointUrl": "https://gallery.azure.com/",
+  "managementEndpointUrl": "https://management.core.windows.net/"
+}
+```
+
+#### 🔹 Add to GitHub Secrets
+
+1. Go to **GitHub Repository → Settings → Secrets and Variables → Actions**.
+2. Click **New Repository Secret**.
+3. Name the secret **AZURE_CREDENTIALS**.
+4. Copy the entire JSON output and paste it as the value.
+5. Click **Save**.
+
+📌 **Example of Repository Secrets Added:**
+![GitHub Secrets](images/repositorySecrets.png)
+
+### 2️⃣ Add Environment Variables as GitHub Secrets
+
+Your Next.js application requires several environment variables for authentication. Add the following:
+
+#### 🔹 Steps to Add Each Secret
+
+1. Go to **GitHub Repository → Settings → Secrets and Variables → Actions**.
+2. Click **New Repository Secret**.
+3. Enter the name (e.g., `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`).
+4. Enter the corresponding value.
+5. Click **Save**.
+6. Repeat this for each of the environment variables:
+
+```yaml
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_publishable_key
+CLERK_SECRET_KEY=your_secret_key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_FRONTEND_API_URL=https://your-clerk-api-url
+```
+
+---
+
+## ✅ Verifying Deployment Workflow
+
+Once the setup is complete, push a commit to the main branch to trigger the workflow.
+
+### 🔹 Check GitHub Actions Workflow Execution:
+
+1. Navigate to **GitHub Repository → Actions**.
+2. Click on the latest workflow run.
+3. Check the logs for any errors or failures.
+4. If deployment fails, use **GitHub Actions logs** and **Azure Container Apps logs** for troubleshooting.
+
+📌 **Example of a Successful Workflow Run:**
+![GitHub Actions Workflow](images/workflows.png)
+
+---
+
+## 🔧 Debugging Common Issues
+
+| Issue | Possible Solution |
+|-------|------------------|
+| ❌ Docker Build Fails | Ensure `Dockerfile` exists and syntax is correct. Run `docker build .` locally to debug. |
+| ❌ Azure Authentication Failure | Ensure `AZURE_CREDENTIALS` is correctly set in GitHub Secrets and is valid. |
+| ❌ Environment Variables Not Loaded | Confirm they are correctly set in `deploy.yml` and GitHub Secrets. |
+| ❌ Container App Not Updating | Try forcing a new deployment with a different tag or re-running the workflow. |
+
+📌 **Example of Azure Container Apps Activity Log:**
+![Azure Container Apps Log](images/activityLog.png)
+
+---
+
+## 🎯 Summary of Deployment Workflow
+
+1️⃣ **Push code to main** → GitHub Actions triggers the workflow  
+2️⃣ **Build and push Docker image** to Azure Container Registry (ACR)  
+3️⃣ **Deploy new container image** to Azure Container Apps  
+4️⃣ **Verify deployment** via GitHub Actions logs and Azure Portal  
+
+---
+
+## 📚 Reference Links
+
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [Azure Container Apps Docs](https://learn.microsoft.com/en-us/azure/container-apps/)
+- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
+
